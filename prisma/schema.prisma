@@ -1,0 +1,198 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER  
+  OPERATOR
+  VIEWER
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  CORPORATE
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum RepairOrderStatus {
+  RECEIVED
+  DIAGNOSED
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  DELIVERED
+}
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  firstName   String
+  lastName    String
+  role        UserRole  @default(OPERATOR)
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id])
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  assignedAppointments Appointment[]
+  createdRepairOrders  RepairOrder[] @relation("CreatedBy")
+  assignedRepairOrders RepairOrder[] @relation("AssignedTo")
+
+  @@map("users")
+}
+
+model Workspace {
+  id       String @id @default(cuid())
+  name     String
+  slug     String @unique
+  logoUrl  String?
+  address  String?
+  phone    String?
+  email    String?
+  settings Json?
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  users        User[]
+  customers    Customer[]
+  vehicles     Vehicle[]
+  appointments Appointment[]
+  repairOrders RepairOrder[]
+
+  @@map("workspaces")
+}
+
+model Customer {
+  id           String       @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String?
+  phone        String?
+  address      String?
+  customerType CustomerType @default(INDIVIDUAL)
+  creditLimit  Decimal?     @db.Decimal(10, 2)
+  creditDays   Int?
+  isActive     Boolean      @default(true)
+  workspaceId  String
+  workspace    Workspace    @relation(fields: [workspaceId], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  vehicles     Vehicle[]
+  appointments Appointment[]
+  repairOrders RepairOrder[]
+
+  @@map("customers")
+}
+
+model Vehicle {
+  id           String    @id @default(cuid())
+  customerId   String
+  customer     Customer  @relation(fields: [customerId], references: [id])
+  make         String
+  model        String
+  year         Int
+  licensePlate String?
+  vin          String?
+  color        String?
+  mileage      Int?
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  appointments Appointment[]
+  repairOrders RepairOrder[]
+
+  @@map("vehicles")
+}
+
+model Appointment {
+  id              String            @id @default(cuid())
+  customerId      String
+  customer        Customer          @relation(fields: [customerId], references: [id])
+  vehicleId       String
+  vehicle         Vehicle           @relation(fields: [vehicleId], references: [id])
+  scheduledAt     DateTime
+  durationMinutes Int               @default(120)
+  serviceType     String
+  description     String?
+  status          AppointmentStatus @default(SCHEDULED)
+  assignedToId    String?
+  assignedTo      User?             @relation(fields: [assignedToId], references: [id])
+  workspaceId     String
+  workspace       Workspace         @relation(fields: [workspaceId], references: [id])
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  repairOrders RepairOrder[]
+
+  @@map("appointments")
+}
+
+model RepairOrder {
+  id                  String            @id @default(cuid())
+  orderNumber         String            @unique
+  customerId          String
+  customer            Customer          @relation(fields: [customerId], references: [id])
+  vehicleId           String
+  vehicle             Vehicle           @relation(fields: [vehicleId], references: [id])
+  appointmentId       String?
+  appointment         Appointment?      @relation(fields: [appointmentId], references: [id])
+  description         String
+  diagnosis           String?
+  status              RepairOrderStatus @default(RECEIVED)
+  estimatedCompletion DateTime?
+  totalAmount         Decimal           @default(0) @db.Decimal(10, 2)
+  createdById         String
+  createdBy           User              @relation("CreatedBy", fields: [createdById], references: [id])
+  assignedToId        String?
+  assignedTo          User?             @relation("AssignedTo", fields: [assignedToId], references: [id])
+  workspaceId         String
+  workspace           Workspace         @relation(fields: [workspaceId], references: [id])
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  // Relations
+  items RepairOrderItem[]
+
+  @@map("repair_orders")
+}
+
+model RepairOrderItem {
+  id            String      @id @default(cuid())
+  repairOrderId String
+  repairOrder   RepairOrder @relation(fields: [repairOrderId], references: [id], onDelete: Cascade)
+  type          String      // 'labor', 'part', 'service'
+  description   String
+  quantity      Int         @default(1)
+  unitPrice     Decimal     @db.Decimal(10, 2)
+  totalPrice    Decimal     @db.Decimal(10, 2)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@map("repair_order_items")
+}
