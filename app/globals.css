@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+body {
+  @apply bg-black text-white;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Custom workshop theme */
+.workshop-gradient {
+  background: linear-gradient(135deg, #000000 0%, #1F2937 50%, #8B5CF6 100%);
+}
+
+.workshop-card {
+  @apply bg-gray-800 border border-gray-700 rounded-lg shadow-lg;
+}
+
+.workshop-card-header {
+  @apply p-6 border-b border-gray-700;
+}
+
+.workshop-card-content {
+  @apply p-6;
+}
+
+.workshop-button-primary {
+  @apply bg-purple-600 text-white hover:bg-purple-700 px-4 py-2 rounded-md transition-colors;
+}
+
+.workshop-button-secondary {
+  @apply bg-gray-700 text-white hover:bg-gray-600 px-4 py-2 rounded-md transition-colors;
+}
+
+.workshop-input {
+  @apply bg-black border border-gray-600 px-3 py-2 rounded-md text-white placeholder:text-gray-400;
+}
+
+.workshop-input:focus {
+  @apply outline-none ring-2 ring-purple-500 ring-offset-2;
+}
